@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Forge Screens</title>
+<style>
+:root{--bg:#F2F3F7;--ink:#15161F;--muted:#6B6F80;--line:#E1E3EA;--accent:#F26B1D;--frame:#0B0B10}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#0C0D12;--ink:#ECEDF3;--muted:#9A9DAE;--line:#2A2C38;--accent:#FF8A3D;--frame:#2A2A36}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0C0D12;--ink:#ECEDF3;--muted:#9A9DAE;--line:#2A2C38;--accent:#FF8A3D;--frame:#2A2A36}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,system-ui,sans-serif;padding:32px 16px 48px}
+.wrap{max-width:1080px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;margin-bottom:28px}
+h1{font-size:26px;letter-spacing:-.02em;margin:0;text-wrap:balance}
+header p{margin:4px 0 0;color:var(--muted);max-width:62ch}
+.chip{font-size:12px;font-weight:600;color:var(--accent);border:1px solid var(--line);border-radius:999px;padding:6px 11px;white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px 24px}
+@media (max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+figure{margin:0;display:flex;flex-direction:column;gap:12px}
+.phone{background:var(--frame);border-radius:34px;padding:7px;box-shadow:0 22px 40px -22px rgba(20,20,60,.45)}
+.phone img{display:block;width:100%;height:auto;border-radius:28px}
+figcaption b{display:block;font-size:15px;letter-spacing:-.01em}
+figcaption span{display:block;color:var(--muted);font-size:13.5px;line-height:1.45}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Screens from the iOS app</h1>
+      <p>Captured from the SwiftUI build in the iOS 26 Simulator by an automated UI test that taps through the app. These are real screens, not mockups. The trainee is sample data.</p>
+    </div>
+    <span class="chip">SwiftUI · Swift Charts · Apple Intelligence</span>
+  </header>
+  <div class="grid">
+    <figure>
+      <div class="phone"><img src="shots/today.jpg" alt="Today screen with this week's circles, an orange Full Body B workout card with an animated figure and Start workout button, and a row of exercise figures" width="600" height="1305" loading="lazy"></div>
+      <figcaption><b>Today</b><span>One card for today's workout, the week at a glance, and every exercise as an animated figure you can tap.</span></figcaption>
+    </figure>
+    <figure>
+      <div class="phone"><img src="shots/workout.jpg" alt="Workout logger with two sets of Romanian Deadlift ticked and a rest timer counting down from 1:29" width="600" height="1305" loading="lazy"></div>
+      <figcaption><b>Log the workout</b><span>Suggested weights carry from set to set. Ticking a set starts the rest timer, which also alerts you if the phone is locked.</span></figcaption>
+    </figure>
+    <figure>
+      <div class="phone"><img src="shots/detail.jpg" alt="Romanian Deadlift detail with a large animated figure, target 4 by 8 to 12, rest 90 seconds, try 77.5 kg, a how-to tip and last session's sets" width="600" height="1305" loading="lazy"></div>
+      <figcaption><b>How to do it</b><span>Each movement is drawn and animated in code from joint angles, so 42 exercises share one consistent visual style.</span></figcaption>
+    </figure>
+    <figure>
+      <div class="phone"><img src="shots/plan.jpg" alt="Your week plan with colour-coded training days, a muscle balance bar and the Full Body A exercise list" width="600" height="1305" loading="lazy"></div>
+      <figcaption><b>A plan from your goal</b><span>Goal, days, level and equipment decide the split, sets, reps and rest. Colours show which muscles each day trains.</span></figcaption>
+    </figure>
+    <figure>
+      <div class="phone"><img src="shots/progress.jpg" alt="Progress screen with weekly sets by muscle group as stacked bars and a body weight trend line heading toward a dashed target" width="600" height="1305" loading="lazy"></div>
+      <figcaption><b>Progress</b><span>Weekly sets by muscle group, body weight against your target, consistency and best lifts.</span></figcaption>
+    </figure>
+    <figure>
+      <div class="phone"><img src="shots/coach.jpg" alt="Coach chat answering Review my last week with sessions done, kilograms lifted and weight progress" width="600" height="1305" loading="lazy"></div>
+      <figcaption><b>Coach</b><span>Answers using your own plan and logs. It runs on-device with Apple Intelligence where available, and falls back to built-in tips.</span></figcaption>
+    </figure>
+  </div>
+</div>
+</body>
+</html>
