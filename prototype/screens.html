@@ -15,14 +15,15 @@
 *{box-sizing:border-box}
 :focus-visible{outline:var(--border-focus) solid var(--focus);outline-offset:2px}
 a{color:var(--primary-text)}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--font-sans);padding:32px 16px 48px}
-.wrap{max-width:1080px;margin:0 auto}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--font-sans);padding:32px clamp(16px,3vw,48px) 48px}
+.wrap{max-width:none;margin:0}
 header{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;margin-bottom:28px}
 h1{font-family:var(--font-display);font-weight:900;font-size:26px;letter-spacing:-.02em;margin:0;text-wrap:balance}
 header p{margin:4px 0 0;color:var(--ink-2);max-width:62ch}
 .chip{font-size:12px;font-weight:700;color:var(--primary-text);background:var(--primary-soft);border:1px solid var(--line);border-radius:var(--radius-pill);padding:6px 11px;white-space:nowrap}
 .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px 24px}
 @media (max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1600px){.grid{grid-template-columns:repeat(6,minmax(0,380px));justify-content:space-between}}
 figure{margin:0;display:flex;flex-direction:column;gap:12px}
 .phone{background:var(--frame);border-radius:34px;padding:7px;box-shadow:var(--shadow-3)}
 .phone img{display:block;width:100%;height:auto;border-radius:28px}
