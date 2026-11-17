@@ -6,15 +6,16 @@ struct CoachView: View {
     @State private var streaming: String?
     @State private var task: Task<Void, Never>?
     @FocusState private var focused: Bool
+    @State private var confirmClear = false
 
     private let suggestions = ["Review my last week", "I'm sore today — adjust my workout", "What should I eat for my goal?", "How do I progress faster?"]
 
     var body: some View {
+        NavigationStack {
         VStack(spacing: 0) {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Coach").font(.title.weight(.bold)).padding(.top, 4)
                         if !Coach.isOnDeviceAvailable {
                             Label(Coach.unavailableReason, systemImage: "info.circle")
                                 .font(.footnote).foregroundStyle(Theme.ink2)
@@ -26,7 +27,16 @@ struct CoachView: View {
                         }
                         ForEach(store.data.chat) { bubble($0) }
                         if let streaming {
-                            bubble(.init(role: .coach, text: streaming.isEmpty ? "Thinking…" : streaming)).id("stream")
+                            if streaming.isEmpty {
+                                HStack(spacing: 8) {
+                                    ProgressView()
+                                    Text("Thinking…").font(.subheadline).foregroundStyle(Theme.ink2)
+                                }
+                                .padding(.leading, 38)
+                                .id("stream")
+                            } else {
+                                bubble(.init(role: .coach, text: streaming)).id("stream")
+                            }
                         }
                         Color.clear.frame(height: 1).id("bottom")
                     }
@@ -39,6 +49,19 @@ struct CoachView: View {
             composer
         }
         .background(Theme.bg)
+        .navigationTitle("Coach")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if !store.data.chat.isEmpty && streaming == nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Clear chat", systemImage: "trash", role: .destructive) { confirmClear = true }
+                }
+            }
+        }
+        .confirmationDialog("Clear this conversation?", isPresented: $confirmClear, titleVisibility: .visible) {
+            Button("Clear chat", role: .destructive) { store.data.chat.removeAll() }
+        }
+        }
     }
 
     private func bubble(_ m: ChatMessage) -> some View {
@@ -47,6 +70,7 @@ struct CoachView: View {
                 Image(systemName: "figure.strengthtraining.traditional").font(.caption.weight(.bold)).foregroundStyle(.white)
                     .frame(width: 30, height: 30)
                     .background(LinearGradient(colors: [Theme.accent, Theme.core], startPoint: .topLeading, endPoint: .bottomTrailing), in: Circle())
+                    .accessibilityHidden(true)
             }
             Text(LocalizedStringKey(m.text))
                 .font(.subheadline)
@@ -54,6 +78,7 @@ struct CoachView: View {
                 .foregroundStyle(m.role == .user ? .white : .primary)
                 .background(m.role == .user ? Theme.accent : Theme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .textSelection(.enabled)
+                .accessibilityLabel(Text(m.role == .user ? "You: " : "Coach: ") + Text(LocalizedStringKey(m.text)))
             if m.role == .coach { Spacer(minLength: 40) }
         }
     }
@@ -68,13 +93,10 @@ struct CoachView: View {
                             .buttonStyle(.bordered).buttonBorderShape(.capsule)
                             .disabled(streaming != nil)
                     }
-                    if !store.data.chat.isEmpty && streaming == nil {
-                        Button("Clear", role: .destructive) { store.data.chat.removeAll() }
-                            .font(.footnote.weight(.semibold)).buttonStyle(.bordered).buttonBorderShape(.capsule)
-                    }
                 }
                 .padding(.horizontal, 16)
             }
+            .accessibilityLabel("Suggested questions")
             HStack(alignment: .bottom, spacing: 8) {
                 TextField("Ask your coach…", text: $input, axis: .vertical)
                     .lineLimit(1...5)
@@ -84,10 +106,14 @@ struct CoachView: View {
                     .submitLabel(.send)
                     .onSubmit { send(input) }
                 if streaming != nil {
-                    Button { task?.cancel() } label: { Image(systemName: "stop.circle.fill").font(.system(size: 34)) }
-                        .accessibilityLabel("Stop")
+                    Button { task?.cancel() } label: {
+                        Image(systemName: "stop.circle.fill").font(.largeTitle).frame(minWidth: 44, minHeight: 44)
+                    }
+                    .accessibilityLabel("Stop")
                 } else {
-                    Button { send(input) } label: { Image(systemName: "arrow.up.circle.fill").font(.system(size: 34)) }
+                    Button { send(input) } label: {
+                        Image(systemName: "arrow.up.circle.fill").font(.largeTitle).frame(minWidth: 44, minHeight: 44)
+                    }
                         .disabled(input.trimmingCharacters(in: .whitespaces).isEmpty)
                         .accessibilityLabel("Send")
                 }

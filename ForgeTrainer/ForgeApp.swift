@@ -28,6 +28,7 @@ struct RootView: View {
     @State private var tab: AppTab = .today
     @State private var toast: String?
     @State private var showGoal = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         if CommandLine.arguments.contains("-figureGallery") { FigureGallery() } else { tabs }
@@ -59,14 +60,19 @@ struct RootView: View {
                     .background(.ultraThickMaterial, in: Capsule())
                     .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
                     .padding(.top, 8)
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
+                    .accessibilityHidden(true)
                     .task(id: toast) {
                         try? await Task.sleep(for: .seconds(2.4))
                         withAnimation { self.toast = nil }
                     }
             }
         }
-        .animation(.spring(duration: 0.3), value: toast)
+        .animation(reduceMotion ? nil : .spring(duration: 0.3), value: toast)
+        .onChange(of: toast) { _, t in
+            // Toasts are visual only; VoiceOver hears them as announcements.
+            if let t { AccessibilityNotification.Announcement(t).post() }
+        }
     }
 }
 
@@ -77,7 +83,7 @@ struct Page<Content: View>: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) { content }
                 .padding(.horizontal, 16)
-                .padding(.top, 8)
+                .padding(.top, 4)
                 .padding(.bottom, 32)
         }
         .scrollDismissesKeyboard(.interactively)

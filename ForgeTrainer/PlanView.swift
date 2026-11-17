@@ -9,13 +9,10 @@ struct PlanView: View {
     var body: some View {
         let p = store.profile
         let today = Calendar.current.component(.weekday, from: .now)
+        NavigationStack {
         Page {
             if store.data.isExample { ExampleBanner { tab = .goal } }
-            VStack(alignment: .leading, spacing: 2) {
-                Text("\(p.goal.label) · \(p.equipment.label)").font(.subheadline.weight(.medium)).foregroundStyle(Theme.ink3)
-                Text("Your week").font(.title.weight(.bold))
-            }
-            .padding(.top, 4)
+            Text("\(p.goal.label) · \(p.equipment.label)").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink2)
 
             // week strip
             HStack(spacing: 6) {
@@ -37,8 +34,11 @@ struct PlanView: View {
                             .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(wd == today ? Color.primary : .clear, lineWidth: 2).padding(-3))
                     }
                     .frame(maxWidth: .infinity)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("\(Day.shortName(wd)): \(day?.name ?? "Rest")")
                 }
             }
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             .padding(.vertical, 4)
 
             balanceCard
@@ -54,6 +54,8 @@ struct PlanView: View {
                 .confirmationDialog("Rebuild your plan?", isPresented: $confirmRebuild, titleVisibility: .visible) {
                     Button("Rebuild plan", role: .destructive) { store.rebuildPlan() }
                 } message: { Text("This replaces any exercise swaps and set changes you've made.") }
+        }
+        .navigationTitle("Your week")
         }
         .sheet(item: $editing) { it in EditItemSheet(itemID: it.id).environment(store) }
     }
@@ -93,23 +95,25 @@ struct PlanView: View {
         return VStack(spacing: 0) {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(day.name).font(Theme.display(24)).foregroundStyle(.white)
+                    Text(day.name).font(Theme.display(24)).foregroundStyle(.white).accessibilityAddTraits(.isHeader)
                     Text("\(wds.isEmpty ? "Unscheduled" : wds)  ·  ~\(day.estimatedMinutes) min  ·  \(day.workingSets) sets")
-                        .font(.footnote.weight(.semibold)).foregroundStyle(.white.opacity(0.85))
+                        .font(.footnote.weight(.semibold)).foregroundStyle(.white.opacity(0.92))
                 }
                 Spacer()
                 ExerciseFigure(pattern: day.items.first?.pattern ?? .squat, exercise: day.items.first?.exercise ?? "",
                                color: .white, propColor: .white.opacity(0.7), animated: false)
                     .frame(width: 52, height: 52)
+                    .accessibilityHidden(true)
             }
             .padding(16)
-            .background(LinearGradient(colors: [c, c.mix(with: .black, by: 0.25)], startPoint: .leading, endPoint: .trailing))
+            .background(c.heroGradient())
 
             VStack(spacing: 0) {
                 ForEach(Array(day.items.enumerated()), id: \.element.id) { i, it in
                     if i > 0 { Divider().padding(.leading, 76) }
                     Button { if store.data.isExample { tab = .goal } else { editing = it } } label: { ExerciseRow(item: it) }
                         .buttonStyle(.plain)
+                        .accessibilityHint("Swap the exercise or change sets and reps")
                 }
             }
             .padding(8)
@@ -122,14 +126,17 @@ struct PlanView: View {
 
 struct FlowChips: View {
     let groups: [(group: MuscleGroup, sets: Int)]
+    @ScaledMetric(relativeTo: .caption) private var chipWidth: CGFloat = 96
     var body: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 96), spacing: 8)], alignment: .leading, spacing: 8) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: min(chipWidth, 300)), spacing: 8)], alignment: .leading, spacing: 8) {
             ForEach(groups, id: \.group) { g in
                 HStack(spacing: 6) {
                     Circle().fill(g.group.color).frame(width: 8, height: 8)
                     Text(g.group.label).font(.caption.weight(.semibold))
                     Text("\(g.sets)").font(Theme.mono(12, .bold)).foregroundStyle(Theme.ink3)
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(g.group.label), \(g.sets) sets")
             }
         }
     }
@@ -185,7 +192,7 @@ struct EditItemSheet: View {
                             HStack {
                                 Text("Reps")
                                 Spacer()
-                                TextField("Reps", text: Binding(get: { it.reps }, set: { store.data.plan.days[loc.day].items[loc.index].reps = String($0.prefix(8)) }))
+                                TextField("8-12", text: Binding(get: { it.reps }, set: { store.data.plan.days[loc.day].items[loc.index].reps = String($0.prefix(8)) }))
                                     .font(Theme.mono(17, .bold)).multilineTextAlignment(.trailing).frame(width: 90)
                             }
                             .padding(14)
@@ -201,5 +208,6 @@ struct EditItemSheet: View {
             }
         }
         .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
     }
 }

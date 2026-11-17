@@ -13,17 +13,24 @@ struct ProgressTab: View {
         let recent = Array(store.data.sessions.suffix(4).reversed())
         let n = store.data.sessions.count
         let avg = n == 0 ? 0 : store.data.sessions.suffix(10).reduce(0) { $0 + $1.minutes } / min(10, n)
+        NavigationStack {
         Page {
             if store.data.isExample { ExampleBanner { tab = .goal } }
-            Text("Progress").font(.title.weight(.bold)).padding(.top, 4)
 
             Card {
-                HStack(spacing: 0) {
-                    summary("\(n)", "sessions")
-                    Divider().frame(height: 36)
-                    summary(store.volumeLast7Days.grouped, "\(u) this week")
-                    Divider().frame(height: 36)
-                    summary("\(avg)", "min avg")
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 0) {
+                        summary("\(n)", "sessions")
+                        Divider().frame(height: 36)
+                        summary(store.volumeLast7Days.grouped, "\(u) this week")
+                        Divider().frame(height: 36)
+                        summary("\(avg)", "min avg")
+                    }
+                    VStack(alignment: .leading, spacing: 12) {
+                        summary("\(n)", "sessions")
+                        summary(store.volumeLast7Days.grouped, "\(u) this week")
+                        summary("\(avg)", "min avg")
+                    }
                 }
             }
 
@@ -39,16 +46,9 @@ struct ProgressTab: View {
                 VStack(alignment: .leading, spacing: 12) {
                     SectionTitle(text: "Weight", trailing: "\(store.currentWeight.clean) → \(store.profile.targetWeight.clean) \(u)")
                     weightChart.frame(height: 190)
-                    HStack(spacing: 10) {
-                        TextField("Today's weight", text: $weightText)
-                            .keyboardType(.decimalPad).focused($weightFocused)
-                            .font(Theme.mono(17, .semibold))
-                            .padding(.horizontal, 14).frame(height: 46)
-                            .background(Theme.surface2, in: Capsule())
-                            .accessibilityLabel("Today's weight in \(u)").accessibilityIdentifier("weightInput")
-                        Button("Log \(u)") { logWeight() }
-                            .font(.headline)
-                            .buttonStyle(.borderedProminent).buttonBorderShape(.capsule).controlSize(.large)
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 10) { weightEntry(u) }
+                        VStack(alignment: .leading, spacing: 10) { weightEntry(u) }
                     }
                 }
             }
@@ -65,17 +65,20 @@ struct ProgressTab: View {
                     SectionTitle(text: "Best lifts")
                     let bests = Array(store.bestLifts.prefix(4))
                     if bests.isEmpty {
-                        Text("Log a weighted set to see your bests.").font(.subheadline).foregroundStyle(Theme.ink3)
+                        ContentUnavailableView("No best lifts yet", systemImage: "trophy",
+                                               description: Text("Log a weighted set to see your bests."))
                     }
                     ForEach(Array(bests.enumerated()), id: \.element.exercise) { i, b in
                         if i > 0 { Divider().padding(.leading, 62) }
                         HStack(spacing: 12) {
                             FigureTile(pattern: ExerciseLibrary.pattern(for: b.exercise), exercise: b.exercise, size: 48)
+                                .accessibilityHidden(true)
                             Text(b.exercise).font(.subheadline.weight(.semibold))
                             Spacer()
                             Text(b.set.weight.clean).font(Theme.display(20)) +
                             Text(" \(u) × \(b.set.reps)").font(.caption.weight(.semibold)).foregroundStyle(Theme.ink3)
                         }
+                        .accessibilityElement(children: .combine)
                     }
                 }
             }
@@ -84,7 +87,8 @@ struct ProgressTab: View {
                 VStack(alignment: .leading, spacing: 10) {
                     SectionTitle(text: "Recent sessions")
                     if recent.isEmpty {
-                        Text("No sessions yet. Your first one will show up here.").font(.subheadline).foregroundStyle(Theme.ink3)
+                        ContentUnavailableView("No sessions yet", systemImage: "figure.strengthtraining.traditional",
+                                               description: Text("Your first workout will show up here."))
                     }
                     ForEach(Array(recent.enumerated()), id: \.element.id) { i, s in
                         if i > 0 { Divider() }
@@ -93,7 +97,21 @@ struct ProgressTab: View {
                 }
             }
         }
+        .navigationTitle("Progress")
         .toolbar { ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Done") { weightFocused = false } } }
+        }
+    }
+
+    @ViewBuilder private func weightEntry(_ u: String) -> some View {
+        TextField("Today's weight", text: $weightText)
+            .keyboardType(.decimalPad).focused($weightFocused)
+            .font(Theme.mono(17, .semibold))
+            .padding(.horizontal, 14).frame(minHeight: 46)
+            .background(Theme.surface2, in: Capsule())
+            .accessibilityLabel("Today's weight in \(u)").accessibilityIdentifier("weightInput")
+        Button("Log \(u)") { logWeight() }
+            .font(.headline)
+            .buttonStyle(.borderedProminent).buttonBorderShape(.capsule).controlSize(.large)
     }
 
     private func totalSets(_ g: MuscleGroup) -> Int {
@@ -106,6 +124,7 @@ struct ProgressTab: View {
             Text(label).font(.caption.weight(.semibold)).foregroundStyle(Theme.ink3)
         }
         .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
     }
 
     private func stat(_ icon: String, _ color: Color, _ label: String, _ value: String, _ unit: String) -> some View {
@@ -149,6 +168,7 @@ struct ProgressTab: View {
             .frame(height: 6)
         }
         .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
     }
 
     private var setsChart: some View {
@@ -169,11 +189,8 @@ struct ProgressTab: View {
         let pts = Array(store.data.weights.suffix(40))
         let target = store.profile.targetWeight
         if pts.count < 2 {
-            VStack(spacing: 8) {
-                Image(systemName: "chart.line.uptrend.xyaxis").font(.largeTitle).foregroundStyle(Theme.ink3)
-                Text("Log your weight a couple of times to see the trend.").font(.subheadline).foregroundStyle(Theme.ink3)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ContentUnavailableView("No trend yet", systemImage: "chart.line.uptrend.xyaxis",
+                                   description: Text("Log your weight a couple of times to see the trend."))
         } else {
             let vals = pts.map(\.weight) + [target]
             let lo = (vals.min()! - 1).rounded(.down), hi = (vals.max()! + 1).rounded(.up)

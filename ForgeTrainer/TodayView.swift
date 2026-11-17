@@ -13,25 +13,16 @@ struct TodayView: View {
     }
 
     var body: some View {
+        NavigationStack {
         Page {
             if store.data.isExample { ExampleBanner { tab = .goal } }
 
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)))
-                        .font(.subheadline.weight(.medium)).foregroundStyle(Theme.ink3)
-                    Text(greeting).font(.title.weight(.bold)).lineLimit(1).minimumScaleFactor(0.7)
-                }
-                Spacer()
-                Button { tab = .goal } label: {
-                    Image(systemName: store.profile.goal.symbol)
-                        .font(.headline).foregroundStyle(.white)
-                        .frame(width: 44, height: 44)
-                        .background(store.profile.goal.color, in: Circle())
-                }
-                .accessibilityLabel("Your goal")
+            VStack(alignment: .leading, spacing: 2) {
+                Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)))
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink2)
+                Text(greeting).font(.title3.weight(.semibold))
             }
-            .padding(.top, 4)
+            .accessibilityElement(children: .combine)
 
             WeekCircles()
 
@@ -46,6 +37,16 @@ struct TodayView: View {
 
             RingsCard()
             HabitsCard(requireReal: requireReal)
+        }
+        .navigationTitle("Today")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { tab = .goal } label: {
+                    Label("Your goal", systemImage: store.profile.goal.symbol)
+                }
+                .accessibilityLabel("Your goal")
+            }
+        }
         }
         .sheet(item: $detail) { ExerciseDetailSheet(item: $0).environment(store) }
     }
@@ -74,7 +75,7 @@ struct TodayView: View {
         } label: {
             Image(systemName: "arrow.triangle.2.circlepath")
                 .font(.subheadline.weight(.bold))
-                .frame(width: 36, height: 36)
+                .frame(width: 44, height: 44)
                 .background(.white.opacity(0.22), in: Circle())
                 .foregroundStyle(.white)
         }
@@ -97,6 +98,9 @@ struct TodayView: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(it.exercise)
+                    .accessibilityValue("\(it.sets) sets of \(it.reps)")
+                    .accessibilityHint("Shows how to do it")
+                    .accessibilityIdentifier("exerciseTile")
                 }
             }
             .padding(.horizontal, 16)
@@ -127,9 +131,12 @@ struct ExerciseRow: View {
             }
             Spacer(minLength: 4)
             Image(systemName: "chevron.right").font(.footnote.weight(.bold)).foregroundStyle(Theme.ink3)
+                .accessibilityHidden(true)
         }
         .padding(10)
+        .frame(minHeight: 44)
         .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -147,30 +154,30 @@ struct WorkoutHero<M: View>: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Eyebrow(text: swapped ? "Swapped workout" : "Today", color: .white.opacity(0.75))
-                    Text(day.name).font(Theme.display(34)).foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.7)
-                    Text(day.focus).font(.subheadline.weight(.medium)).foregroundStyle(.white.opacity(0.8))
+                    Eyebrow(text: swapped ? "Swapped workout" : "Today", color: .white.opacity(0.9))
+                    Text(day.name).font(Theme.display(34)).foregroundStyle(.white).lineLimit(2).minimumScaleFactor(0.7)
+                        .accessibilityAddTraits(.isHeader)
+                    Text(day.focus).font(.subheadline.weight(.medium)).foregroundStyle(.white.opacity(0.92))
                 }
                 Spacer()
                 menu()
             }
             HStack(alignment: .bottom) {
                 Text("\(day.estimatedMinutes) min  ·  \(day.items.count) exercises")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(.white.opacity(0.9))
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
                 Spacer()
                 ExerciseFigure(pattern: day.items.first?.pattern ?? .squat, exercise: day.items.first?.exercise ?? "",
                                color: .white, propColor: .white.opacity(0.75))
                     .frame(width: 120, height: 120)
+                    .accessibilityHidden(true)
             }
             Button(action: onStart) {
                 Label("Start workout", systemImage: "play.fill")
             }
-            .buttonStyle(BigButtonStyle(fill: .white, text: c.mix(with: .black, by: 0.15)))
+            .buttonStyle(BigButtonStyle(fill: .white, text: c.mix(with: .black, by: 0.35)))
         }
         .padding(20)
-        .background(
-            LinearGradient(colors: [c, c.mix(with: .black, by: 0.3)], startPoint: .topLeading, endPoint: .bottomTrailing),
-            in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .background(c.heroGradient(), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
         .shadow(color: c.opacity(0.35), radius: 16, y: 8)
     }
 
@@ -191,13 +198,14 @@ struct DoneHero: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Eyebrow(text: "Done for today", color: .white.opacity(0.8))
+                    Eyebrow(text: "Done for today", color: .white.opacity(0.9))
                     Text(session.dayName).font(Theme.display(32)).foregroundStyle(.white)
+                        .fixedSize(horizontal: false, vertical: true)
                     Text("Recovery is part of the plan. Eat protein, drink water, sleep well.")
-                        .font(.subheadline).foregroundStyle(.white.opacity(0.85))
+                        .font(.subheadline).foregroundStyle(.white.opacity(0.92))
                 }
                 Spacer()
-                Image(systemName: "checkmark.seal.fill").font(.system(size: 44)).foregroundStyle(.white)
+                Image(systemName: "checkmark.seal.fill").font(.largeTitle).foregroundStyle(.white).accessibilityHidden(true)
             }
             HStack(spacing: 10) {
                 pill("\(session.setsDone)", "sets")
@@ -208,8 +216,7 @@ struct DoneHero: View {
                 .buttonStyle(BigButtonStyle(fill: .white.opacity(0.2)))
         }
         .padding(20)
-        .background(LinearGradient(colors: [Theme.good, Theme.good.mix(with: .black, by: 0.3)], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .background(Theme.good.heroGradient(), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
     }
 
     private func pill(_ v: String, _ u: String) -> some View {
@@ -230,10 +237,12 @@ struct RestHero<M: View>: View {
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
-                Eyebrow(text: "Rest day", color: .white.opacity(0.8))
+                Eyebrow(text: "Rest day", color: .white.opacity(0.9))
                 Text("Recover & recharge").font(Theme.display(28)).foregroundStyle(.white)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
                 Text("Muscles grow between sessions. A 20–30 min walk or light mobility helps.")
-                    .font(.subheadline).foregroundStyle(.white.opacity(0.85))
+                    .font(.subheadline).foregroundStyle(.white.opacity(0.92))
                 if let next {
                     Text("Next: \(next.day.name) \(next.label)").font(.subheadline.weight(.bold)).foregroundStyle(.white).padding(.top, 4)
                 }
@@ -241,12 +250,11 @@ struct RestHero<M: View>: View {
             Spacer()
             VStack(spacing: 12) {
                 menu()
-                Image(systemName: "moon.zzz.fill").font(.system(size: 40)).foregroundStyle(.white.opacity(0.9))
+                Image(systemName: "moon.zzz.fill").font(.largeTitle).foregroundStyle(.white.opacity(0.9)).accessibilityHidden(true)
             }
         }
         .padding(20)
-        .background(LinearGradient(colors: [Theme.core, Theme.core.mix(with: .black, by: 0.35)], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .background(Theme.core.heroGradient(0.15, 0.4), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
     }
 }
 
@@ -284,11 +292,16 @@ struct WeekCircles: View {
                 .accessibilityLabel("\(Day.shortName(d.weekday)): \(d.done ? "trained" : d.planned ? "planned" : "rest")")
             }
         }
+        // A glanceable calendar strip with fixed-size day circles: text stops growing at the largest
+        // non-accessibility size; VoiceOver reads each day in full.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 }
 
 struct RingsCard: View {
     @Environment(Store.self) private var store
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .title3) private var ringSize: CGFloat = 78
 
     var body: some View {
         let p = store.profile
@@ -296,7 +309,7 @@ struct RingsCard: View {
         let week = Double(store.sessionsThisWeek) / Double(max(1, p.days.count))
         Card {
             VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 0) {
+                (typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 16)) : AnyLayout(HStackLayout(spacing: 0))) {
                     ring(progress: store.goalPercent, color: Theme.accent, value: "\(Int(store.goalPercent * 100))%",
                          label: "Goal", sub: remaining > 0.05 ? "\(remaining.clean) \(store.unit) to go" : "Reached!")
                         .accessibilityHint("\(store.daysLeft) days left")
@@ -318,7 +331,7 @@ struct RingsCard: View {
                     Text(value).font(Theme.display(18)).minimumScaleFactor(0.7)
                 }
             }
-            .frame(width: 78, height: 78)
+            .frame(width: min(ringSize, 120), height: min(ringSize, 120))
             VStack(spacing: 0) {
                 Text(label).font(.footnote.weight(.bold))
                 Text(sub).font(.caption).foregroundStyle(Theme.ink3).lineLimit(1).minimumScaleFactor(0.8)
@@ -333,19 +346,28 @@ struct RingsCard: View {
 
 struct HabitsCard: View {
     @Environment(Store.self) private var store
+    @Environment(\.dynamicTypeSize) private var typeSize
     var requireReal: () -> Bool
 
     var body: some View {
         let h = store.habitToday
         let goal = store.profile.waterGoal
-        HStack(spacing: 10) {
-            // Tap adds a glass; long-press resets.
-            chip(icon: "drop.fill", color: Theme.push, value: "\(h.water)/\(goal)", label: "Water",
-                 progress: Double(h.water) / Double(max(1, goal)))
-                .onTapGesture { if requireReal() { store.habitToday.water = min(goal, h.water + 1) } }
-                .onLongPressGesture { if requireReal() { store.habitToday.water = 0 } }
-                .accessibilityAddTraits(.isButton)
-                .accessibilityHint("Tap to add a glass")
+        (typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 10)) : AnyLayout(HStackLayout(spacing: 10))) {
+            // Tap adds a glass; touch and hold to reset.
+            Button {
+                if requireReal() { store.habitToday.water = min(goal, h.water + 1) }
+            } label: {
+                chip(icon: "drop.fill", color: Theme.push, value: "\(h.water)/\(goal)", label: "Water",
+                     progress: Double(h.water) / Double(max(1, goal)))
+            }
+            .buttonStyle(.plain)
+            .contextMenu {
+                Button("Reset water", systemImage: "arrow.counterclockwise", role: .destructive) {
+                    if requireReal() { store.habitToday.water = 0 }
+                }
+            }
+            .accessibilityHint("Adds a glass")
+            .accessibilityAction(named: "Reset water") { if requireReal() { store.habitToday.water = 0 } }
             Menu {
                 ForEach([5.0, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 10], id: \.self) { v in
                     Button("\(v.clean) hours") { if requireReal() { store.habitToday.sleep = v } }
@@ -398,6 +420,7 @@ struct ExerciseDetailSheet: View {
 
     var body: some View {
         let c = item.pattern.group.color
+        NavigationStack {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 ExerciseFigure(pattern: item.pattern, exercise: item.exercise, color: c, propColor: c.opacity(0.7))
@@ -405,13 +428,13 @@ struct ExerciseDetailSheet: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 20)
                     .background(c.opacity(0.12), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(item.exercise).font(.title.weight(.bold))
-                    HStack {
-                        GroupChip(group: item.pattern.group)
-                        Tag(text: item.pattern.label)
-                        Tag(text: ExerciseLibrary.equipment(for: item.exercise).label)
+                    Text(item.exercise).font(.title.weight(.bold)).accessibilityAddTraits(.isHeader)
+                    ViewThatFits(in: .horizontal) {
+                        HStack { tags }
+                        VStack(alignment: .leading) { tags }
                     }
                     Text(item.pattern.group.detail).font(.subheadline).foregroundStyle(Theme.ink2)
                 }
@@ -448,7 +471,11 @@ struct ExerciseDetailSheet: View {
             }
             .padding(20)
         }
-        .presentationDetents([.large])
+        .navigationTitle(item.exercise)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+        }
+        .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
     }
 
@@ -460,5 +487,12 @@ struct ExerciseDetailSheet: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
         .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 14))
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder private var tags: some View {
+        GroupChip(group: item.pattern.group)
+        Tag(text: item.pattern.label)
+        Tag(text: ExerciseLibrary.equipment(for: item.exercise).label)
     }
 }

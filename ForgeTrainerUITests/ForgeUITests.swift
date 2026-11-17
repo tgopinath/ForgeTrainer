@@ -46,6 +46,15 @@ final class ForgeUITests: XCTestCase {
         field.typeText(text)
     }
 
+    /// On a rest day Today has no workout card, so swap in the first plan day.
+    private func showWorkoutIfRestDay() {
+        guard !button(containing: "Start workout").waitForExistence(timeout: 2) else { return }
+        app.buttons["Switch workout"].firstMatch.tap()
+        sleep(1)
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Full Body")).firstMatch.tap()
+        sleep(1)
+    }
+
     func testEveryScreen() throws {
         app.launch()
         XCTAssertTrue(app.tabBars.buttons["Today"].waitForExistence(timeout: 10))
@@ -56,7 +65,8 @@ final class ForgeUITests: XCTestCase {
         app.swipeUp(); sleep(1); shot("today-example-scrolled")
         app.swipeDown(); app.swipeDown()
 
-        let firstExercise = app.buttons["Romanian Deadlift"].firstMatch
+        showWorkoutIfRestDay()
+        let firstExercise = app.buttons["exerciseTile"].firstMatch
         if firstExercise.waitForExistence(timeout: 3) {
             firstExercise.tap(); sleep(2); shot("exercise-detail")
             app.swipeDown(velocity: .fast); sleep(1)
@@ -87,6 +97,8 @@ final class ForgeUITests: XCTestCase {
         let current = app.textFields["currentWeight"]
         XCTAssertTrue(current.waitForExistence(timeout: 3))
         type(into: current, "82")
+        app.buttons["Done"].firstMatch.tap()
+        sleep(1)
         type(into: app.textFields["targetWeight"], "76")
         app.buttons["Done"].firstMatch.tap()
         sleep(1); shot("goal-filled")
@@ -97,6 +109,7 @@ final class ForgeUITests: XCTestCase {
         sleep(2); shot("today-real")
 
         // Train
+        showWorkoutIfRestDay()
         let start = button(containing: "Start workout")
         XCTAssertTrue(start.waitForExistence(timeout: 3), "Today should have a workout (Mon/Wed/Fri default)")
         start.tap()
@@ -129,7 +142,9 @@ final class ForgeUITests: XCTestCase {
         }
         shot("progress-real")
 
-        tab("Plan"); shot("plan-real")
+        tab("Plan")
+        app.swipeDown(); app.swipeDown(); sleep(1)
+        shot("plan-real")
         button(containing: "Back Squat").firstMatch.tap()
         sleep(2); shot("plan-edit-sheet")
     }
@@ -139,9 +154,11 @@ final class ForgeUITests: XCTestCase {
         app.launchArguments = ["-uiTestReset", "-portfolioDemo"]
         app.launch()
         XCTAssertTrue(app.tabBars.buttons["Today"].waitForExistence(timeout: 10))
+        sleep(1)
+        showWorkoutIfRestDay()
         sleep(2); shot("p-today")
 
-        app.buttons["Romanian Deadlift"].firstMatch.tap()
+        app.buttons["exerciseTile"].firstMatch.tap()
         sleep(2); shot("p-detail")
         app.swipeDown(velocity: .fast); sleep(1)
 

@@ -49,6 +49,9 @@ struct WorkoutView: View {
     @State private var confirmDiscard = false
     @State private var setTicks = 0
     @FocusState private var focused: Bool
+    @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         if let active = store.data.active, active.dayIndex < store.plan.days.count {
@@ -67,7 +70,13 @@ struct WorkoutView: View {
                 .background(Theme.bg)
                 .safeAreaInset(edge: .top, spacing: 0) { header(day, active) }
                 .safeAreaInset(edge: .bottom, spacing: 0) { restBar }
+                .navigationTitle(day.name)
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Finish") { finish() }
+                            .buttonStyle(.borderedProminent).tint(Theme.good)
+                    }
                     ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Done") { focused = false } }
                 }
                 .confirmationDialog("Discard this workout?", isPresented: $confirmDiscard, titleVisibility: .visible) {
@@ -78,30 +87,29 @@ struct WorkoutView: View {
             }
             .sensoryFeedback(.success, trigger: setTicks)
             .sensoryFeedback(.warning, trigger: rest.finished)
+            .onChange(of: rest.finished) { AccessibilityNotification.Announcement("Rest over. Next set.").post() }
         }
     }
 
     private func header(_ day: PlanDay, _ a: ActiveWorkout) -> some View {
         let all = a.sets.values.flatMap { $0 }
         let done = all.filter(\.done).count
-        return VStack(spacing: 10) {
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Eyebrow(text: "\(done) of \(all.count) sets")
-                    Text(day.name).font(Theme.display(26))
-                }
+        return VStack(spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("\(done) of \(all.count) sets done").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink2)
                 Spacer()
                 TimelineView(.periodic(from: .now, by: 1)) { ctx in
                     Label(Duration.seconds(ctx.date.timeIntervalSince(a.started)).formatted(.time(pattern: .minuteSecond)), systemImage: "timer")
                         .font(Theme.mono(17, .bold))
                         .foregroundStyle(Theme.ink2)
                 }
-                Button("Finish") { finish() }
-                    .buttonStyle(.borderedProminent).buttonBorderShape(.capsule).tint(Theme.good)
+                .accessibilityLabel("Elapsed time")
             }
-            ProgressView(value: Double(done), total: Double(max(1, all.count))).tint(day.mainGroup.color)
+            ProgressView(value: Double(done), total: Double(max(1, all.count))) { Text("Workout progress") }
+                .labelsHidden()
+                .tint(day.mainGroup.color)
         }
-        .padding(.horizontal, 16).padding(.vertical, 10)
+        .padding(.horizontal, 16).padding(.vertical, 8)
         .background(.bar)
     }
 
@@ -113,13 +121,15 @@ struct WorkoutView: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .center, spacing: 14) {
                     FigureTile(pattern: it.pattern, exercise: it.exercise, size: 64, animated: !complete)
+                        .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(it.exercise).font(.headline)
+                        Text(it.exercise).font(.headline).accessibilityAddTraits(.isHeader)
                         Text("\(it.sets) × \(it.reps) · rest \(it.rest)s").font(Theme.mono(14, .medium)).foregroundStyle(Theme.ink2)
                     }
                     Spacer(minLength: 0)
                     if complete {
                         Image(systemName: "checkmark.circle.fill").font(.title).foregroundStyle(Theme.good)
+                            .accessibilityLabel("Complete")
                     }
                 }
                 Grid(horizontalSpacing: 10, verticalSpacing: 8) {
@@ -137,14 +147,17 @@ struct WorkoutView: View {
                                 .frame(width: 30, height: 30)
                                 .foregroundStyle(r.done ? .white : c)
                                 .background(r.done ? c : c.opacity(0.13), in: Circle())
+                                .accessibilityLabel("Set \(j + 1)")
                             field(binding(it.id, j, \.weight), placeholder: it.pattern.isUnloaded ? "—" : "0", keyboard: .decimalPad)
                                 .disabled(it.pattern.isUnloaded)
+                                .accessibilityLabel("Set \(j + 1) weight in \(store.unit)")
                             field(binding(it.id, j, \.reps), placeholder: "\(it.reps.repsTop)", keyboard: .numberPad)
+                                .accessibilityLabel("Set \(j + 1) reps")
                             Button { toggle(it, j) } label: {
                                 Image(systemName: r.done ? "checkmark.circle.fill" : "circle")
-                                    .font(.system(size: 34, weight: .medium))
+                                    .font(.largeTitle.weight(.medium))
                                     .foregroundStyle(r.done ? Theme.good : Theme.ink3.opacity(0.5))
-                                    .frame(width: 46, height: 44)
+                                    .frame(minWidth: 46, minHeight: 44)
                             }
                             .accessibilityLabel("Mark set \(j + 1) done")
                             .accessibilityAddTraits(r.done ? .isSelected : [])
@@ -156,6 +169,7 @@ struct WorkoutView: View {
                     store.data.active?.sets[it.id, default: []].append(ActiveSet(weight: last?.weight ?? "", reps: ""))
                 } label: {
                     Label("Add set", systemImage: "plus").font(.subheadline.weight(.semibold))
+                        .frame(minHeight: 44)
                 }
                 .tint(c)
             }
@@ -170,6 +184,7 @@ struct WorkoutView: View {
             .multilineTextAlignment(.center)
             .frame(minHeight: 44)
             .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(contrast == .increased ? Theme.ink3 : .clear))
     }
 
     private func binding(_ id: UUID, _ j: Int, _ kp: WritableKeyPath<ActiveSet, String>) -> Binding<String> {
@@ -211,7 +226,11 @@ struct WorkoutView: View {
         if let end = rest.end {
             TimelineView(.periodic(from: .now, by: 0.5)) { ctx in
                 let left = end.timeIntervalSince(ctx.date)
-                HStack(spacing: 12) {
+                let layout = typeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+                    : AnyLayout(HStackLayout(spacing: 12))
+                layout {
+                    HStack(spacing: 12) {
                     ZStack {
                         Circle().stroke(.white.opacity(0.2), lineWidth: 4)
                         Circle().trim(from: 0, to: max(0, left / max(1, rest.total)))
@@ -219,25 +238,33 @@ struct WorkoutView: View {
                             .rotationEffect(.degrees(-90))
                     }
                     .frame(width: 34, height: 34)
+                    .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 0) {
-                        Text(left > 0 ? "REST" : "GO!").font(.caption2.weight(.heavy)).opacity(0.7)
+                        Text(left > 0 ? "REST" : "GO!").font(.caption2.weight(.heavy)).opacity(0.85)
                         Text(left > 0 ? Duration.seconds(left.rounded(.up)).formatted(.time(pattern: .minuteSecond)) : "Next set")
                             .font(Theme.mono(20)).monospacedDigit()
                             .foregroundStyle(left > 0 && left <= 10 ? Theme.amber : .white)
                     }
-                    Spacer()
+                    }
+                    .accessibilityElement(children: .combine)
+                    if !typeSize.isAccessibilitySize { Spacer() }
+                    HStack(spacing: 12) {
                     if left > 0 {
                         Button("+15s") { rest.add(15) }.buttonStyle(.bordered).buttonBorderShape(.capsule).tint(.white)
+                            .controlSize(.large)
+                            .accessibilityLabel("Add 15 seconds")
                     }
                     Button(left > 0 ? "Skip" : "Close") { rest.skip() }.buttonStyle(.bordered).buttonBorderShape(.capsule).tint(.white)
+                        .controlSize(.large)
+                    }
                 }
                 .foregroundStyle(.white)
                 .padding(.horizontal, 16).padding(.vertical, 12)
-                .background(Color(white: 0.1), in: Capsule())
+                .background(Color(white: 0.1), in: RoundedRectangle(cornerRadius: typeSize.isAccessibilitySize ? 28 : 40, style: .continuous))
                 .shadow(color: .black.opacity(0.25), radius: 14, y: 6)
                 .padding(.horizontal, 12).padding(.bottom, 6)
             }
-            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
         }
     }
 }
